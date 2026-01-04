@@ -3,272 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    
-    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/ogw/AF2bZygZy66C2djtxMLdaKJPnUd2_8o38WmQIzpINd1ue-CMJl0=s64-c-mo">
-    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/ogw/AF2bZygZy66C2djtxMLdaKJPnUd2_8o38WmQIzpINd1ue-CMJl0=s64-c-mo">
-
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-        const firebaseConfig = {
-          apiKey: "AIzaSyAyNLJDbHJweH61mRhRToqfla3e6LSdefE",
-          authDomain: "antique-timetable.firebaseapp.com",
-          projectId: "antique-timetable",
-          storageBucket: "antique-timetable.firebasestorage.app",
-          messagingSenderId: "436252284092",
-          appId: "1:436252284092:web:ea4a075a24a0ae009cacb9",
-          measurementId: "G-EHKFF82NPZ"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-
-        const AUTHORIZED_EMAIL = "minelpriyavaz@gmail.com"; 
-        let currentUser = null;
-
-        window.loginWithGoogle = async function() {
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("Login Error:", error);
-            }
-        };
-
-        window.logout = () => signOut(auth).then(() => {
-            sessionStorage.clear();
-            location.reload();
-        });
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (user.email === AUTHORIZED_EMAIL) {
-                    currentUser = user;
-                    document.getElementById('login-screen').style.display = 'none';
-                    document.getElementById('main-app').style.display = 'flex';
-                    await window.loadFromCloud();
-                    updateClockAndMarker();
-                } else {
-                    alert("Unauthorized access.");
-                    signOut(auth);
-                }
-            } else {
-                document.getElementById('login-screen').style.display = 'flex';
-                document.getElementById('main-app').style.display = 'none';
-            }
-        });
-
-        window.saveToCloud = async function() {
-            if (!currentUser) return; 
-            const sidebarTasks = [];
-            document.querySelectorAll('#sidebarTasks .task-item span:first-child').forEach(span => sidebarTasks.push(span.innerText));
-            const gridData = {}; 
-            document.querySelectorAll('.slot').forEach((slot, index) => {
-                const slotTasks = [];
-                slot.querySelectorAll('.placed-task span:first-child').forEach(span => slotTasks.push(span.innerText));
-                if (slotTasks.length > 0) {
-                    gridData[`slot_${index}`] = slotTasks;
-                }
-            });
-            try {
-                await setDoc(doc(db, "users", "roshman"), {
-                    sidebar: sidebarTasks,
-                    grid: gridData,
-                    lastUpdated: new Date()
-                });
-            } catch (e) { console.error("Cloud Error: ", e); }
-        };
-
-        window.loadFromCloud = async function() {
-            try {
-                const docSnap = await getDoc(doc(db, "users", "roshman"));
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    renderSidebar(data.sidebar || []);
-                    renderGrid(data.grid || {});
-                }
-            } catch (e) { console.error("Load Error: ", e); }
-        };
-    </script>
-
+    <title>Antique Timetable - Guest & Admin Access</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <style>
         :root {
-            --body-bg: #d1c4ab; --primary-bg: #d1c4ab; --card-bg: #f5ede0; 
-            --text-main: #3d2e1f; --border-color: #8b7355; --marker-red: #a32a2a; 
-            --accent-tan: #c9a875; --gold: #c9a875;
+            --body-bg: #d1c4ab; 
+            --primary-bg: #d1c4ab; 
+            --card-bg: #f5ede0; 
+            --text-main: #3d2e1f;
+            --border-color: #8b7355;
+            --marker-red: #a32a2a; 
+            --accent-tan: #c9a875;
+            --color-sat: #d4c4b0;
+            --color-sun: #c9a875;
         }
 
+        /* --- LOGIN STYLES --- */
         #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), 
-                        url('https://www.transparenttextures.com/patterns/dark-wood.png'), #1a0f0a;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--body-bg);
             display: flex; justify-content: center; align-items: center; z-index: 2000;
         }
 
-        .login-card { 
-            background: rgba(40, 30, 20, 0.85); 
-            backdrop-filter: blur(12px);
-            padding: 50px 70px; 
-            border: 1px solid var(--gold); 
-            border-radius: 4px; 
-            text-align: center;
+        .login-card {
+            background: var(--card-bg);
+            padding: 40px; border: 2px solid var(--border-color); border-radius: 12px;
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
-        .login-card h2 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 34px; margin-bottom: 5px; text-transform: uppercase; }
-        .login-card p { font-family: 'Playfair Display', serif; color: #bfae96; font-style: italic; margin-bottom: 40px; }
-
-        .brass-btn { 
-            padding: 14px 35px; background: linear-gradient(145deg, #c9a875, #9b7e51);
-            color: #1a0f0a; border: 1px solid #5a4635; cursor: pointer; font-family: 'Cinzel', serif; font-weight: bold;
+        .login-card input {
+            display: block; width: 220px; padding: 10px; margin: 10px auto;
+            border: 1.5px solid var(--border-color); border-radius: 5px;
         }
 
-        #main-app { display: none; width: 100%; min-height: 100vh; font-family: 'Georgia', serif; }
-        body { margin: 0; background-color: var(--body-bg); display: flex; }
-        .sidebar { width: 260px; background-color: #f0e8da; border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; }
-        .task-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; min-height: 100px; }
-        .task-item { background: #faf6f0; border: 1.5px solid #b8a592; padding: 10px 15px; margin-bottom: 12px; border-radius: 25px; cursor: grab; display: flex; justify-content: space-between; }
-        .delete-task { color: #a32a2a; cursor: pointer; font-weight: bold; }
+        .btn-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
         
+        .login-btn { padding: 10px 20px; background: var(--text-main); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .guest-btn { padding: 10px 20px; background: transparent; color: var(--text-main); border: 1.5px solid var(--text-main); border-radius: 5px; cursor: pointer; }
+
+        /* --- MAIN APP --- */
+        #main-app { display: none; width: 100%; min-height: 100vh; }
+        body { font-family: 'Georgia', serif; margin: 0; background-color: var(--body-bg); color: var(--text-main); display: flex; }
+
+        .sidebar { width: 260px; background-color: #f0e8da; border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; }
+        .task-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .task-item { background: #faf6f0; border: 1.5px solid #b8a592; padding: 10px 15px; margin-bottom: 12px; border-radius: 25px; cursor: grab; display: flex; justify-content: space-between; align-items: center; }
+        .delete-task { color: #a32a2a; cursor: pointer; font-weight: bold; }
         .add-focus-btn { margin-top: 20px; padding: 12px; background: var(--accent-tan); color: white; border-radius: 25px; text-align: center; cursor: pointer; font-weight: bold; }
 
         #wallpaper-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background-color: var(--primary-bg); padding: 20px; }
-        .timetable-container { width: 100%; max-width: 1050px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
+        .timetable-container { width: 100%; max-width: 600px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 60px; }
-        .date-title { font-size: 42px; }
-        .clock-box { font-size: 22px; border: 1.5px solid var(--border-color); padding: 10px 20px; background: rgba(255,255,255,0.3); border-radius: 5px; }
-        .timetable-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 15px; position: relative; }
-        #marker { position: absolute; top: -35px; width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 22px solid var(--marker-red); transform: translateX(-50%); transition: left 0.5s; }
+        .date-title { font-size: 32px; }
+        .clock-box { font-size: 18px; border: 1.5px solid var(--border-color); padding: 10px 20px; background: rgba(255,255,255,0.3); border-radius: 5px; }
+
+        /* FIXED: Now set to 2 columns */
+        .timetable-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; position: relative; }
+        
+        /* Marker hidden for 2-day view to keep it clean, or repositioned */
+        #marker { display: none; }
+
         .day-label { text-align: center; padding: 15px 5px; background: #e8dcc4; border: 1.5px solid var(--border-color); font-weight: bold; }
+        .day-label.sat { background-color: var(--color-sat); }
+        .day-label.sun { background-color: var(--color-sun); color: white; }
+        
         .slot { min-height: 140px; border: 1.5px dashed var(--border-color); background: rgba(255,255,255,0.2); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .span-row { grid-column: span 7; text-align: center; padding: 15px; background: rgba(254, 245, 231, 0.5); border: 1.5px solid #d4a574; }
-        .placed-task { background: rgba(240, 230, 210, 0.8); border: 1px solid var(--border-color); padding: 5px 10px; font-size: 14px; border-radius: 4px; display: flex; justify-content: space-between; cursor: grab; }
+        .span-row { grid-column: span 2; text-align: center; padding: 15px; background: rgba(254, 245, 231, 0.5); border: 1.5px solid #d4a574; }
+        .placed-task { background: rgba(240, 230, 210, 0.8); border: 1px solid var(--border-color); padding: 5px 10px; font-size: 14px; border-radius: 4px; display: flex; justify-content: space-between; }
+
         .controls { position: fixed; top: 20px; right: 20px; z-index: 100; }
-        .login-btn-nav { padding: 12px 25px; background: var(--text-main); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .guest-badge { position: fixed; bottom: 20px; left: 280px; background: #a32a2a; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
     <div class="login-card">
-        <h2>Dashboard</h2>
-        <p>a development tool for roshman by himself</p>
-        <button class="brass-btn" onclick="loginWithGoogle()">Sign In</button>
+        <h2>Antique Timetable</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <div class="btn-row">
+            <button class="login-btn" onclick="checkLogin()">Login</button>
+            <button class="guest-btn" onclick="guestLogin()">Guest View</button>
+        </div>
+        <p id="error-msg" style="color: #a32a2a; display: none; margin-top: 15px;">Invalid Roshman Credentials</p>
     </div>
 </div>
 
 <div id="main-app">
+    <div class="guest-badge" id="guestBadge">Guest Mode: Changes will not be saved</div>
     <div class="controls">
-        <button class="login-btn-nav" onclick="downloadWallpaper()">Download Wallpaper</button>
-        <button class="login-btn-nav" style="background:transparent; color:var(--text-main); border:1px solid var(--text-main)" onclick="logout()">Logout</button>
+        <button class="login-btn" onclick="downloadWallpaper()">Download Wallpaper</button>
+        <button class="guest-btn" onclick="logout()">Logout</button>
     </div>
+
     <aside class="sidebar">
         <h2>Focus</h2>
-        <ul class="task-list" id="sidebarTasks" ondrop="dropToSidebar(event)" ondragover="allowDrop(event)"></ul>
+        <ul class="task-list" id="sidebarTasks"></ul>
         <div class="add-focus-btn" onclick="addFocusItem()">+ Focus</div>
     </aside>
+
     <main id="wallpaper-wrapper">
         <div class="timetable-container">
             <div class="header-row">
                 <div class="date-title" id="currentDateTitle"></div>
                 <div class="clock-box" id="clockDisplay"></div>
             </div>
-            <div class="timetable-grid" id="mainGrid">
-                <div id="marker"></div>
-                <div class="day-label" id="day-1">Mon</div>
-                <div class="day-label" id="day-2">Tue</div>
-                <div class="day-label" id="day-3">Wed</div>
-                <div class="day-label" id="day-4">Thu</div>
-                <div class="day-label" id="day-5">Fri</div>
-                <div class="day-label" id="day-6">Sat</div>
-                <div class="day-label" id="day-0">Sun</div>
-                <div class="span-row">Morning Reset</div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="slot" ondrop="dropToGrid(event)" ondragover="allowDrop(event)"></div>
-                <div class="span-row">Sleep Time</div>
-            </div>
+            <div class="timetable-grid" id="dynamicGrid"></div>
         </div>
     </main>
 </div>
 
 <script>
-    let draggedElement = null;
+    let isGuest = false;
+    const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-    function renderSidebar(tasks) {
-        const list = document.getElementById('sidebarTasks');
-        list.innerHTML = '';
+    function checkLogin() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        if(u === "roshman" && p === "1997") {
+            isGuest = false;
+            sessionStorage.setItem('userType', 'admin');
+            showApp();
+        } else {
+            document.getElementById('error-msg').style.display = 'block';
+        }
+    }
+
+    function guestLogin() {
+        isGuest = true;
+        sessionStorage.setItem('userType', 'guest');
+        showApp();
+    }
+
+    function showApp() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'flex';
+        if(isGuest) document.getElementById('guestBadge').style.display = 'block';
+        
+        loadSidebar();
+        renderTwoDayGrid(); // Initial render
+        loadGrid();
+        updateClockAndMarker();
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        location.reload();
+    }
+
+    function conditionalSave() {
+        if (!isGuest) {
+            saveSidebar();
+            saveGrid();
+        }
+    }
+
+    function saveSidebar() {
+        const tasks = [];
+        document.querySelectorAll('#sidebarTasks .task-item span:first-child').forEach(span => tasks.push(span.innerText));
+        localStorage.setItem('focusSidebar', JSON.stringify(tasks));
+    }
+
+    function loadSidebar() {
+        const saved = isGuest ? null : localStorage.getItem('focusSidebar');
+        const tasks = saved ? JSON.parse(saved) : ["Japanese", "English", "Web Dev", "Electricity"];
+        document.getElementById('sidebarTasks').innerHTML = '';
         tasks.forEach(name => createSidebarItem(name));
     }
 
     function createSidebarItem(name) {
         const li = document.createElement('li');
-        li.className = 'task-item'; li.draggable = true;
-        li.ondragstart = (e) => { draggedElement = li; e.dataTransfer.setData("text", name); };
+        li.className = 'task-item';
+        li.draggable = true;
+        li.ondragstart = drag;
         li.innerHTML = `<span>${name}</span><span class="delete-task" onclick="removeSidebarItem(this)">×</span>`;
         document.getElementById('sidebarTasks').appendChild(li);
     }
 
-    function renderGrid(gridData) {
-        const slots = document.querySelectorAll('.slot');
-        slots.forEach(slot => slot.innerHTML = '');
-        for (const [key, tasks] of Object.entries(gridData)) {
-            const index = parseInt(key.split('_')[1]);
-            if (slots[index]) tasks.forEach(t => createPlacedTask(slots[index], t));
-        }
+    function removeSidebarItem(element) { element.parentElement.remove(); conditionalSave(); }
+    function addFocusItem() {
+        const name = prompt("Enter Focus Task:");
+        if (name) { createSidebarItem(name); conditionalSave(); }
+    }
+
+    // UPDATED: Renders only Today and Tomorrow
+    function renderTwoDayGrid() {
+        const now = new Date();
+        const colombo = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 3600000));
+        const todayIdx = colombo.getDay();
+        const tomorrowIdx = (todayIdx + 1) % 7;
+
+        const grid = document.getElementById('dynamicGrid');
+        grid.innerHTML = `
+            <div class="day-label ${todayIdx === 6 ? 'sat' : ''} ${todayIdx === 0 ? 'sun' : ''}">${DAYS[todayIdx]} (Today)</div>
+            <div class="day-label ${tomorrowIdx === 6 ? 'sat' : ''} ${tomorrowIdx === 0 ? 'sun' : ''}">${DAYS[tomorrowIdx]} (Tomorrow)</div>
+            <div class="span-row">Morning Reset</div>
+            <div class="slot" data-slot-id="${todayIdx}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <div class="slot" data-slot-id="${tomorrowIdx}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <div class="span-row">Sleep Time</div>
+        `;
+    }
+
+    function saveGrid() {
+        // We save using the Day Index as the key so data persists when the view shifts
+        const gridData = JSON.parse(localStorage.getItem('focusGrid') || "{}");
+        document.querySelectorAll('.slot').forEach(slot => {
+            const dayId = slot.getAttribute('data-slot-id');
+            const slotTasks = [];
+            slot.querySelectorAll('.placed-task span:first-child').forEach(span => slotTasks.push(span.innerText));
+            gridData[dayId] = slotTasks;
+        });
+        localStorage.setItem('focusGrid', JSON.stringify(gridData));
+    }
+
+    function loadGrid() {
+        if(isGuest) return;
+        const saved = localStorage.getItem('focusGrid');
+        if (!saved) return;
+        const gridData = JSON.parse(saved);
+        
+        document.querySelectorAll('.slot').forEach(slot => {
+            const dayId = slot.getAttribute('data-slot-id');
+            if (gridData[dayId]) {
+                gridData[dayId].forEach(taskName => createPlacedTask(slot, taskName));
+            }
+        });
     }
 
     function createPlacedTask(parent, name) {
         const div = document.createElement('div');
-        div.className = 'placed-task'; div.draggable = true;
-        div.ondragstart = (e) => { draggedElement = div; e.dataTransfer.setData("text", name); };
-        div.innerHTML = `<span>${name}</span><span style="cursor:pointer; color:#a32a2a" class="delete-x" onclick="this.parentElement.remove(); window.saveToCloud();">×</span>`;
+        div.className = 'placed-task';
+        div.innerHTML = `<span>${name}</span><span style="cursor:pointer; color:#a32a2a" onclick="removePlacedTask(this)">×</span>`;
         parent.appendChild(div);
     }
 
-    function removeSidebarItem(el) { el.parentElement.remove(); window.saveToCloud(); }
-    function addFocusItem() {
-        const name = prompt("New Focus Task:");
-        if (name) { createSidebarItem(name); window.saveToCloud(); }
-    }
+    function removePlacedTask(element) { element.parentElement.remove(); conditionalSave(); }
 
+    function drag(ev) { ev.dataTransfer.setData("text", ev.target.querySelector('span').innerText); }
     function allowDrop(ev) { ev.preventDefault(); }
-    
-    function dropToGrid(ev) {
+    function drop(ev) {
         ev.preventDefault();
-        const name = ev.dataTransfer.getData("text");
+        const data = ev.dataTransfer.getData("text");
         const slot = ev.target.closest('.slot');
         if (slot) {
-            // FIXED: Only remove the original if it was dragged from another grid slot
-            // If it came from the sidebar, we keep it in the sidebar
-            if (draggedElement && draggedElement.classList.contains('placed-task')) {
-                draggedElement.remove();
-            }
-            createPlacedTask(slot, name);
-            window.saveToCloud();
-        }
-    }
-
-    function dropToSidebar(ev) {
-        ev.preventDefault();
-        const name = ev.dataTransfer.getData("text");
-        // Only allow dropping "back" to sidebar if it was on the grid
-        if (draggedElement && draggedElement.classList.contains('placed-task')) {
-            draggedElement.remove();
-            // Optional: Uncomment below if you want the item to move back to the focus list
-            // createSidebarItem(name); 
-            window.saveToCloud();
+            createPlacedTask(slot, data);
+            conditionalSave();
         }
     }
 
@@ -277,29 +258,37 @@
         const colombo = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 3600000));
         document.getElementById('clockDisplay').textContent = colombo.toLocaleTimeString();
         document.getElementById('currentDateTitle').textContent = colombo.toISOString().split('T')[0].replace(/-/g,'/');
-        const day = colombo.getDay();
-        const header = document.getElementById(`day-${day}`);
-        const marker = document.getElementById('marker');
-        if (header && marker) marker.style.left = (header.offsetLeft + (header.offsetWidth / 2)) + 'px';
     }
 
     function downloadWallpaper() {
-        const h = document.getElementById('currentDateTitle');
-        const deleteButtons = document.querySelectorAll('.delete-x');
+        const dateHeader = document.getElementById('currentDateTitle');
+        const container = document.querySelector('.timetable-container');
+        const deletes = document.querySelectorAll('.placed-task span:last-child');
         
-        h.style.visibility = 'hidden'; 
-        deleteButtons.forEach(btn => btn.style.display = 'none');
-        
-        html2canvas(document.getElementById('wallpaper-wrapper'), { scale: 2 }).then(canvas => {
+        dateHeader.style.visibility = 'hidden';
+        container.style.backgroundColor = '#d1c4ab'; 
+        deletes.forEach(btn => btn.style.display = 'none');
+
+        html2canvas(document.getElementById('wallpaper-wrapper'), { scale: 2, backgroundColor: '#d1c4ab' }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `Timetable.png`; link.href = canvas.toDataURL(); link.click();
-            
-            h.style.visibility = 'visible';
-            deleteButtons.forEach(btn => btn.style.display = 'inline');
+            link.download = `Timetable-Focus.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+
+            dateHeader.style.visibility = 'visible';
+            container.style.backgroundColor = '#f5ede0'; 
+            deletes.forEach(btn => btn.style.display = 'inline');
         });
     }
 
     setInterval(updateClockAndMarker, 1000);
+    window.onload = () => {
+        const status = sessionStorage.getItem('userType');
+        if (status) {
+            isGuest = (status === 'guest');
+            showApp();
+        }
+    };
 </script>
 </body>
 </html>
