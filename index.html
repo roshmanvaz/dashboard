@@ -3,294 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antique Timetable - Guest & Admin Access</title>
+    <title>Antique Dashboard - Spreadsheet Style</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --body-bg: #d1c4ab; 
-            --primary-bg: #d1c4ab; 
             --card-bg: #f5ede0; 
             --text-main: #3d2e1f;
             --border-color: #8b7355;
-            --marker-red: #a32a2a; 
             --accent-tan: #c9a875;
-            --color-sat: #d4c4b0;
-            --color-sun: #c9a875;
+            --header-bg: #e8dcc4;
         }
 
-        /* --- LOGIN STYLES --- */
+        body { font-family: 'Georgia', serif; margin: 0; background-color: var(--body-bg); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- LOGIN SCREEN --- */
         #login-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--body-bg);
-            display: flex; justify-content: center; align-items: center; z-index: 2000;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--body-bg); display: flex; justify-content: center; align-items: center; z-index: 2000;
         }
-
-        .login-card {
-            background: var(--card-bg);
-            padding: 40px; border: 2px solid var(--border-color); border-radius: 12px;
-            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        .login-card input {
-            display: block; width: 220px; padding: 10px; margin: 10px auto;
-            border: 1.5px solid var(--border-color); border-radius: 5px;
-        }
-
-        .btn-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        
+        .login-card { background: var(--card-bg); padding: 40px; border: 2px solid var(--border-color); border-radius: 12px; text-align: center; }
+        .login-card input { display: block; width: 220px; padding: 10px; margin: 10px auto; border: 1.5px solid var(--border-color); border-radius: 5px; }
         .login-btn { padding: 10px 20px; background: var(--text-main); color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .guest-btn { padding: 10px 20px; background: transparent; color: var(--text-main); border: 1.5px solid var(--text-main); border-radius: 5px; cursor: pointer; }
 
-        /* --- MAIN APP --- */
-        #main-app { display: none; width: 100%; min-height: 100vh; }
-        body { font-family: 'Georgia', serif; margin: 0; background-color: var(--body-bg); color: var(--text-main); display: flex; }
+        /* --- LEFT SIDEBAR (PLAYLIST) --- */
+        .sidebar { width: 350px; background-color: #f0e8da; border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
+        .playlist-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .playlist-table th, .playlist-table td { border: 1px solid var(--border-color); padding: 10px; text-align: left; font-size: 13px; }
+        .playlist-table th { background: var(--header-bg); }
+        .playlist-table input { width: 90%; border: none; background: transparent; font-family: inherit; color: inherit; }
 
-        /* --- PLAYLIST SIDEBAR --- */
-        .sidebar { width: 320px; background-color: #f0e8da; border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
-        .playlist-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        .playlist-table th, .playlist-table td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
-        .playlist-table th { background: var(--accent-tan); color: white; }
-        .playlist-table td input { width: 90%; border: none; background: transparent; font-family: inherit; color: inherit; }
-        .add-track-btn { margin-top: 15px; padding: 10px; background: var(--text-main); color: white; border: none; border-radius: 5px; cursor: pointer; text-align: center; font-weight: bold; }
-
-        /* --- TIMETABLE AREA --- */
-        #wallpaper-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background-color: var(--primary-bg); padding: 20px; }
-        .timetable-container { width: 100%; max-width: 800px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .date-title { font-size: 32px; }
-        .clock-box { font-size: 18px; border: 1.5px solid var(--border-color); padding: 10px 20px; background: rgba(255,255,255,0.3); border-radius: 5px; }
-
-        /* SPREADSHEET STYLE GRID: Time | Day 1 | Day 2 */
-        .timetable-grid { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 0; border: 1px solid var(--border-color); }
-        .day-label, .time-label { text-align: center; padding: 12px 5px; background: #e8dcc4; border: 1px solid var(--border-color); font-weight: bold; font-size: 14px; }
-        .day-label.sat { background-color: var(--color-sat); }
-        .day-label.sun { background-color: var(--color-sun); color: white; }
+        /* --- MAIN AREA (TIMETABLE) --- */
+        #main-app { display: none; width: 100%; }
+        #wallpaper-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px; overflow-y: auto; }
         
-        .time-cell { border: 1px solid var(--border-color); background: #eee5d8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
-        .slot { min-height: 100px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.2); padding: 8px; display: flex; flex-direction: column; gap: 5px; }
-        .span-row-full { grid-column: span 3; text-align: center; padding: 10px; background: rgba(212, 165, 116, 0.3); border: 1px solid var(--border-color); font-style: italic; font-weight: bold; }
-        
-        .placed-task { background: rgba(240, 230, 210, 0.9); border: 1px solid var(--border-color); padding: 4px 8px; font-size: 13px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .header-box { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+        .date-display { font-size: 28px; font-weight: bold; border-bottom: 2px solid var(--border-color); }
 
-        .controls { position: fixed; top: 20px; right: 20px; z-index: 100; }
-        .guest-badge { position: fixed; bottom: 20px; left: 340px; background: #a32a2a; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
+        .spreadsheet-container { width: 100%; max-width: 900px; background: var(--card-bg); border: 2px solid var(--border-color); border-collapse: collapse; display: table; }
+        
+        /* Grid Structure */
+        .grid-header { display: grid; grid-template-columns: 100px 1fr 1fr; background: var(--header-bg); border-bottom: 2px solid var(--border-color); }
+        .grid-row { display: grid; grid-template-columns: 100px 1fr 1fr; border-bottom: 1px solid var(--border-color); min-height: 60px; }
+        .grid-cell { border-right: 1px solid var(--border-color); padding: 10px; display: flex; flex-direction: column; gap: 5px; position: relative; }
+        .grid-cell:last-child { border-right: none; }
+
+        .time-col { background: #eee5d8; font-weight: bold; text-align: center; align-items: center; justify-content: center; font-size: 12px; }
+        .day-label { font-weight: bold; text-align: center; padding: 15px; font-size: 16px; }
+
+        .task-entry { background: rgba(255,255,255,0.5); border: 1px solid #c9a875; padding: 4px 8px; font-size: 12px; border-radius: 3px; display: flex; justify-content: space-between; }
+        .task-entry span.del { color: red; cursor: pointer; margin-left: 10px; }
+
+        .controls { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
     <div class="login-card">
-        <h2>Antique Timetable</h2>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <div class="btn-row">
-            <button class="login-btn" onclick="checkLogin()">Login</button>
-            <button class="guest-btn" onclick="guestLogin()">Guest View</button>
-        </div>
-        <p id="error-msg" style="color: #a32a2a; display: none; margin-top: 15px;">Invalid Roshman Credentials</p>
+        <h2>Roshman Timetable</h2>
+        <input type="password" id="pass" placeholder="Enter Password">
+        <button class="login-btn" onclick="checkLogin()">Login</button>
     </div>
 </div>
 
 <div id="main-app">
-    <div class="guest-badge" id="guestBadge">Guest Mode: Changes will not be saved</div>
     <div class="controls">
-        <button class="login-btn" onclick="downloadWallpaper()">Download Wallpaper</button>
-        <button class="guest-btn" onclick="logout()">Logout</button>
+        <button class="login-btn" onclick="downloadWallpaper()">Download</button>
+        <button class="login-btn" style="background:#8b7355" onclick="location.reload()">Logout</button>
     </div>
 
     <aside class="sidebar">
         <h2>Music Playlist</h2>
-        <table class="playlist-table" id="playlistTable">
+        <table class="playlist-table">
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Track Name</th>
-                    <th>Action</th>
-                </tr>
+                <tr><th width="40">#</th><th>Track Name</th><th width="30"></th></tr>
             </thead>
             <tbody id="playlistBody"></tbody>
         </table>
-        <button class="add-track-btn" onclick="addTrack()">+ Add Track</button>
+        <button class="login-btn" style="margin-top:15px; width:100%" onclick="addTrack()">+ Add Track</button>
     </aside>
 
     <main id="wallpaper-wrapper">
-        <div class="timetable-container">
-            <div class="header-row">
-                <div class="date-title" id="currentDateTitle"></div>
-                <div class="clock-box" id="clockDisplay"></div>
-            </div>
-            <div class="timetable-grid" id="dynamicGrid"></div>
+        <div class="header-box">
+            <div class="date-display" id="dateText">2026/01/05</div>
+            <div id="clockText" style="font-weight: bold;">00:00:00</div>
+        </div>
+
+        <div class="spreadsheet-container" id="captureArea">
+            <div class="grid-header" id="gridHeader">
+                </div>
+            <div id="gridBody">
+                </div>
         </div>
     </main>
 </div>
 
 <script>
+    const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const TIMES = ["04:00", "06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"];
     let isGuest = false;
-    const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     function checkLogin() {
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
-        if(u === "roshman" && p === "1997") {
-            isGuest = false;
-            sessionStorage.setItem('userType', 'admin');
-            showApp();
-        } else {
-            document.getElementById('error-msg').style.display = 'block';
+        if(document.getElementById('pass').value === "1997") {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'flex';
+            initApp();
         }
     }
 
-    function guestLogin() {
-        isGuest = true;
-        sessionStorage.setItem('userType', 'guest');
-        showApp();
+    function initApp() {
+        renderGridHeaders();
+        renderGridRows();
+        loadData();
+        updateClock();
+        setInterval(updateClock, 1000);
     }
 
-    function showApp() {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        if(isGuest) document.getElementById('guestBadge').style.display = 'block';
+    function renderGridHeaders() {
+        const now = new Date();
+        const tomorrow = new Date(); tomorrow.setDate(now.getDate() + 1);
         
-        loadPlaylist();
-        renderSpreadsheetGrid();
-        loadGrid();
-        updateClockAndMarker();
+        const header = document.getElementById('gridHeader');
+        header.innerHTML = `
+            <div class="day-label time-col">TIME</div>
+            <div class="day-label">${DAYS[now.getDay()]} (Today)</div>
+            <div class="day-label">${DAYS[tomorrow.getDay()]} (Tomorrow)</div>
+        `;
+        document.getElementById('dateText').innerText = now.toISOString().split('T')[0].replace(/-/g, '/');
     }
 
-    function logout() { sessionStorage.clear(); location.reload(); }
-    function conditionalSave() { if (!isGuest) { savePlaylist(); saveGrid(); } }
+    function renderGridRows() {
+        const body = document.getElementById('gridBody');
+        body.innerHTML = '';
+        TIMES.forEach(time => {
+            const row = document.createElement('div');
+            row.className = 'grid-row';
+            row.innerHTML = `
+                <div class="grid-cell time-col">${time}</div>
+                <div class="grid-cell slot" data-time="${time}" data-day="today" onclick="addTask(this)"></div>
+                <div class="grid-cell slot" data-time="${time}" data-day="tomorrow" onclick="addTask(this)"></div>
+            `;
+            body.appendChild(row);
+        });
+    }
+
+    // --- TASK LOGIC ---
+    function addTask(cell) {
+        const task = prompt("Enter Task:");
+        if (task) {
+            const div = document.createElement('div');
+            div.className = 'task-entry';
+            div.innerHTML = `<span>${task}</span><span class="del" onclick="event.stopPropagation(); this.parentElement.remove(); saveAll();">×</span>`;
+            cell.appendChild(div);
+            saveAll();
+        }
+    }
 
     // --- PLAYLIST LOGIC ---
     function addTrack(name = "") {
         const tbody = document.getElementById('playlistBody');
-        const rowCount = tbody.rows.length + 1;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${rowCount}</td>
-            <td><input type="text" value="${name}" placeholder="Track Name..." onchange="conditionalSave()"></td>
-            <td style="text-align:center"><span style="color:red; cursor:pointer" onclick="this.parentElement.parentElement.remove(); updateTrackNumbers(); conditionalSave();">×</span></td>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${tbody.rows.length + 1}</td>
+            <td><input type="text" value="${name}" placeholder="Track..." onchange="saveAll()"></td>
+            <td><span style="color:red; cursor:pointer" onclick="this.closest('tr').remove(); saveAll();">×</span></td>
         `;
-        tbody.appendChild(tr);
-        conditionalSave();
+        tbody.appendChild(row);
     }
 
-    function updateTrackNumbers() {
-        document.querySelectorAll('#playlistBody tr').forEach((tr, i) => { tr.cells[0].innerText = i + 1; });
-    }
-
-    function savePlaylist() {
-        const tracks = [];
-        document.querySelectorAll('#playlistBody tr').forEach(tr => {
-            const val = tr.querySelector('input').value;
-            if(val) tracks.push(val);
+    // --- STORAGE ---
+    function saveAll() {
+        const data = { tasks: {}, playlist: [] };
+        document.querySelectorAll('.slot').forEach((slot, i) => {
+            const tasks = [];
+            slot.querySelectorAll('.task-entry span:first-child').forEach(s => tasks.push(s.innerText));
+            data.tasks[i] = tasks;
         });
-        localStorage.setItem('playlistData', JSON.stringify(tracks));
+        document.querySelectorAll('#playlistBody input').forEach(input => data.playlist.push(input.value));
+        localStorage.setItem('dashboard_data', JSON.stringify(data));
     }
 
-    function loadPlaylist() {
-        const saved = isGuest ? null : localStorage.getItem('playlistData');
-        const tracks = saved ? JSON.parse(saved) : ["Deep Focus", "Piano Gold"];
-        document.getElementById('playlistBody').innerHTML = '';
-        tracks.forEach(t => addTrack(t));
-    }
-
-    // --- SPREADSHEET STYLE GRID LOGIC ---
-    function renderSpreadsheetGrid() {
-        const now = new Date();
-        const colombo = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 3600000));
-        const todayIdx = colombo.getDay();
-        const tomorrowIdx = (todayIdx + 1) % 7;
-
-        const grid = document.getElementById('dynamicGrid');
-        
-        // Header Row
-        grid.innerHTML = `
-            <div class="time-label">Time</div>
-            <div class="day-label ${todayIdx === 6 ? 'sat' : ''} ${todayIdx === 0 ? 'sun' : ''}">${DAYS[todayIdx]} (Today)</div>
-            <div class="day-label ${tomorrowIdx === 6 ? 'sat' : ''} ${tomorrowIdx === 0 ? 'sun' : ''}">${DAYS[tomorrowIdx]} (Tomorrow)</div>
-            
-            <div class="span-row-full">Morning Reset</div>
-            
-            <div class="time-cell">AM</div>
-            <div class="slot" data-slot-id="${todayIdx}_AM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            <div class="slot" data-slot-id="${tomorrowIdx}_AM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            
-            <div class="time-cell">PM</div>
-            <div class="slot" data-slot-id="${todayIdx}_PM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            <div class="slot" data-slot-id="${tomorrowIdx}_PM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-
-            <div class="span-row-full">Sleep Time</div>
-        `;
-    }
-
-    function saveGrid() {
-        const gridData = JSON.parse(localStorage.getItem('focusGrid') || "{}");
-        document.querySelectorAll('.slot').forEach(slot => {
-            const slotId = slot.getAttribute('data-slot-id');
-            const slotTasks = [];
-            slot.querySelectorAll('.placed-task span:first-child').forEach(span => slotTasks.push(span.innerText));
-            gridData[slotId] = slotTasks;
-        });
-        localStorage.setItem('focusGrid', JSON.stringify(gridData));
-    }
-
-    function loadGrid() {
-        if(isGuest) return;
-        const saved = localStorage.getItem('focusGrid');
+    function loadData() {
+        const saved = localStorage.getItem('dashboard_data');
         if (!saved) return;
-        const gridData = JSON.parse(saved);
-        document.querySelectorAll('.slot').forEach(slot => {
-            const slotId = slot.getAttribute('data-slot-id');
-            if (gridData[slotId]) gridData[slotId].forEach(taskName => createPlacedTask(slot, taskName));
+        const data = JSON.parse(saved);
+        
+        const slots = document.querySelectorAll('.slot');
+        Object.keys(data.tasks).forEach(idx => {
+            data.tasks[idx].forEach(txt => {
+                const div = document.createElement('div');
+                div.className = 'task-entry';
+                div.innerHTML = `<span>${txt}</span><span class="del" onclick="event.stopPropagation(); this.parentElement.remove(); saveAll();">×</span>`;
+                slots[idx].appendChild(div);
+            });
         });
+        data.playlist.forEach(t => addTrack(t));
     }
 
-    function createPlacedTask(parent, name) {
-        const div = document.createElement('div');
-        div.className = 'placed-task';
-        div.innerHTML = `<span>${name}</span><span style="cursor:pointer; color:#a32a2a" onclick="this.parentElement.remove(); conditionalSave();">×</span>`;
-        parent.appendChild(div);
-    }
-
-    function allowDrop(ev) { ev.preventDefault(); }
-    function drop(ev) {
-        ev.preventDefault();
-        const data = prompt("Add Task:");
-        const slot = ev.target.closest('.slot');
-        if (slot && data) { createPlacedTask(slot, data); conditionalSave(); }
-    }
-
-    function updateClockAndMarker() {
-        const now = new Date();
-        const colombo = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 3600000));
-        document.getElementById('clockDisplay').textContent = colombo.toLocaleTimeString();
-        document.getElementById('currentDateTitle').textContent = colombo.toISOString().split('T')[0].replace(/-/g,'/');
+    function updateClock() {
+        document.getElementById('clockText').innerText = new Date().toLocaleTimeString();
     }
 
     function downloadWallpaper() {
-        const dateHeader = document.getElementById('currentDateTitle');
-        const deletes = document.querySelectorAll('.placed-task span:last-child, #playlistBody span');
-        
-        dateHeader.style.visibility = 'hidden';
-        deletes.forEach(btn => btn.style.display = 'none');
-
-        html2canvas(document.getElementById('main-app'), { scale: 2, backgroundColor: '#d1c4ab' }).then(canvas => {
+        const area = document.getElementById('captureArea');
+        html2canvas(area, { backgroundColor: '#d1c4ab', scale: 2 }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `Dashboard.png`;
+            link.download = 'timetable.png';
             link.href = canvas.toDataURL();
             link.click();
-
-            dateHeader.style.visibility = 'visible';
-            deletes.forEach(btn => btn.style.display = 'inline');
         });
     }
-
-    setInterval(updateClockAndMarker, 1000);
-    window.onload = () => {
-        const status = sessionStorage.getItem('userType');
-        if (status) { isGuest = (status === 'guest'); showApp(); }
-    };
 </script>
 </body>
 </html>
