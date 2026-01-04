@@ -56,19 +56,22 @@
 
         /* --- TIMETABLE AREA --- */
         #wallpaper-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background-color: var(--primary-bg); padding: 20px; }
-        .timetable-container { width: 100%; max-width: 700px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .timetable-container { width: 100%; max-width: 800px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .date-title { font-size: 32px; }
         .clock-box { font-size: 18px; border: 1.5px solid var(--border-color); padding: 10px 20px; background: rgba(255,255,255,0.3); border-radius: 5px; }
 
-        .timetable-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .day-label { text-align: center; padding: 15px 5px; background: #e8dcc4; border: 1.5px solid var(--border-color); font-weight: bold; }
+        /* SPREADSHEET STYLE GRID: Time | Day 1 | Day 2 */
+        .timetable-grid { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 0; border: 1px solid var(--border-color); }
+        .day-label, .time-label { text-align: center; padding: 12px 5px; background: #e8dcc4; border: 1px solid var(--border-color); font-weight: bold; font-size: 14px; }
         .day-label.sat { background-color: var(--color-sat); }
         .day-label.sun { background-color: var(--color-sun); color: white; }
         
-        .slot { min-height: 180px; border: 1.5px dashed var(--border-color); background: rgba(255,255,255,0.2); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .span-row { grid-column: span 2; text-align: center; padding: 15px; background: rgba(254, 245, 231, 0.5); border: 1.5px solid #d4a574; }
-        .placed-task { background: rgba(240, 230, 210, 0.8); border: 1px solid var(--border-color); padding: 5px 10px; font-size: 14px; border-radius: 4px; display: flex; justify-content: space-between; }
+        .time-cell { border: 1px solid var(--border-color); background: #eee5d8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+        .slot { min-height: 100px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.2); padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+        .span-row-full { grid-column: span 3; text-align: center; padding: 10px; background: rgba(212, 165, 116, 0.3); border: 1px solid var(--border-color); font-style: italic; font-weight: bold; }
+        
+        .placed-task { background: rgba(240, 230, 210, 0.9); border: 1px solid var(--border-color); padding: 4px 8px; font-size: 13px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
 
         .controls { position: fixed; top: 20px; right: 20px; z-index: 100; }
         .guest-badge { position: fixed; bottom: 20px; left: 340px; background: #a32a2a; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
@@ -106,8 +109,7 @@
                     <th>Action</th>
                 </tr>
             </thead>
-            <tbody id="playlistBody">
-                </tbody>
+            <tbody id="playlistBody"></tbody>
         </table>
         <button class="add-track-btn" onclick="addTrack()">+ Add Track</button>
     </aside>
@@ -127,7 +129,6 @@
     let isGuest = false;
     const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-    // --- LOGIN LOGIC ---
     function checkLogin() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
@@ -152,22 +153,13 @@
         if(isGuest) document.getElementById('guestBadge').style.display = 'block';
         
         loadPlaylist();
-        renderTwoDayGrid();
+        renderSpreadsheetGrid();
         loadGrid();
         updateClockAndMarker();
     }
 
-    function logout() {
-        sessionStorage.clear();
-        location.reload();
-    }
-
-    function conditionalSave() {
-        if (!isGuest) {
-            savePlaylist();
-            saveGrid();
-        }
-    }
+    function logout() { sessionStorage.clear(); location.reload(); }
+    function conditionalSave() { if (!isGuest) { savePlaylist(); saveGrid(); } }
 
     // --- PLAYLIST LOGIC ---
     function addTrack(name = "") {
@@ -184,9 +176,7 @@
     }
 
     function updateTrackNumbers() {
-        document.querySelectorAll('#playlistBody tr').forEach((tr, i) => {
-            tr.cells[0].innerText = i + 1;
-        });
+        document.querySelectorAll('#playlistBody tr').forEach((tr, i) => { tr.cells[0].innerText = i + 1; });
     }
 
     function savePlaylist() {
@@ -200,36 +190,47 @@
 
     function loadPlaylist() {
         const saved = isGuest ? null : localStorage.getItem('playlistData');
-        const tracks = saved ? JSON.parse(saved) : ["Lo-fi Study", "Classical Piano"];
+        const tracks = saved ? JSON.parse(saved) : ["Deep Focus", "Piano Gold"];
         document.getElementById('playlistBody').innerHTML = '';
         tracks.forEach(t => addTrack(t));
     }
 
-    // --- GRID LOGIC ---
-    function renderTwoDayGrid() {
+    // --- SPREADSHEET STYLE GRID LOGIC ---
+    function renderSpreadsheetGrid() {
         const now = new Date();
         const colombo = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 3600000));
         const todayIdx = colombo.getDay();
         const tomorrowIdx = (todayIdx + 1) % 7;
 
         const grid = document.getElementById('dynamicGrid');
+        
+        // Header Row
         grid.innerHTML = `
+            <div class="time-label">Time</div>
             <div class="day-label ${todayIdx === 6 ? 'sat' : ''} ${todayIdx === 0 ? 'sun' : ''}">${DAYS[todayIdx]} (Today)</div>
             <div class="day-label ${tomorrowIdx === 6 ? 'sat' : ''} ${tomorrowIdx === 0 ? 'sun' : ''}">${DAYS[tomorrowIdx]} (Tomorrow)</div>
-            <div class="span-row">Morning Reset</div>
-            <div class="slot" data-slot-id="${todayIdx}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            <div class="slot" data-slot-id="${tomorrowIdx}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            <div class="span-row">Sleep Time</div>
+            
+            <div class="span-row-full">Morning Reset</div>
+            
+            <div class="time-cell">AM</div>
+            <div class="slot" data-slot-id="${todayIdx}_AM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <div class="slot" data-slot-id="${tomorrowIdx}_AM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            
+            <div class="time-cell">PM</div>
+            <div class="slot" data-slot-id="${todayIdx}_PM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <div class="slot" data-slot-id="${tomorrowIdx}_PM" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+
+            <div class="span-row-full">Sleep Time</div>
         `;
     }
 
     function saveGrid() {
         const gridData = JSON.parse(localStorage.getItem('focusGrid') || "{}");
         document.querySelectorAll('.slot').forEach(slot => {
-            const dayId = slot.getAttribute('data-slot-id');
+            const slotId = slot.getAttribute('data-slot-id');
             const slotTasks = [];
             slot.querySelectorAll('.placed-task span:first-child').forEach(span => slotTasks.push(span.innerText));
-            gridData[dayId] = slotTasks;
+            gridData[slotId] = slotTasks;
         });
         localStorage.setItem('focusGrid', JSON.stringify(gridData));
     }
@@ -239,33 +240,25 @@
         const saved = localStorage.getItem('focusGrid');
         if (!saved) return;
         const gridData = JSON.parse(saved);
-        
         document.querySelectorAll('.slot').forEach(slot => {
-            const dayId = slot.getAttribute('data-slot-id');
-            if (gridData[dayId]) {
-                gridData[dayId].forEach(taskName => createPlacedTask(slot, taskName));
-            }
+            const slotId = slot.getAttribute('data-slot-id');
+            if (gridData[slotId]) gridData[slotId].forEach(taskName => createPlacedTask(slot, taskName));
         });
     }
 
     function createPlacedTask(parent, name) {
         const div = document.createElement('div');
         div.className = 'placed-task';
-        div.innerHTML = `<span>${name}</span><span style="cursor:pointer; color:#a32a2a" onclick="removePlacedTask(this)">×</span>`;
+        div.innerHTML = `<span>${name}</span><span style="cursor:pointer; color:#a32a2a" onclick="this.parentElement.remove(); conditionalSave();">×</span>`;
         parent.appendChild(div);
     }
-
-    function removePlacedTask(element) { element.parentElement.remove(); conditionalSave(); }
 
     function allowDrop(ev) { ev.preventDefault(); }
     function drop(ev) {
         ev.preventDefault();
-        const data = prompt("Add Task To Slot:"); // Temporary method since Focus labels are removed
+        const data = prompt("Add Task:");
         const slot = ev.target.closest('.slot');
-        if (slot && data) {
-            createPlacedTask(slot, data);
-            conditionalSave();
-        }
+        if (slot && data) { createPlacedTask(slot, data); conditionalSave(); }
     }
 
     function updateClockAndMarker() {
@@ -277,21 +270,18 @@
 
     function downloadWallpaper() {
         const dateHeader = document.getElementById('currentDateTitle');
-        const container = document.querySelector('.timetable-container');
-        const deletes = document.querySelectorAll('.placed-task span:last-child');
+        const deletes = document.querySelectorAll('.placed-task span:last-child, #playlistBody span');
         
         dateHeader.style.visibility = 'hidden';
-        container.style.backgroundColor = '#d1c4ab'; 
         deletes.forEach(btn => btn.style.display = 'none');
 
-        html2canvas(document.getElementById('wallpaper-wrapper'), { scale: 2, backgroundColor: '#d1c4ab' }).then(canvas => {
+        html2canvas(document.getElementById('main-app'), { scale: 2, backgroundColor: '#d1c4ab' }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `Timetable-2Day.png`;
+            link.download = `Dashboard.png`;
             link.href = canvas.toDataURL();
             link.click();
 
             dateHeader.style.visibility = 'visible';
-            container.style.backgroundColor = '#f5ede0'; 
             deletes.forEach(btn => btn.style.display = 'inline');
         });
     }
@@ -299,10 +289,7 @@
     setInterval(updateClockAndMarker, 1000);
     window.onload = () => {
         const status = sessionStorage.getItem('userType');
-        if (status) {
-            isGuest = (status === 'guest');
-            showApp();
-        }
+        if (status) { isGuest = (status === 'guest'); showApp(); }
     };
 </script>
 </body>
