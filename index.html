@@ -46,34 +46,32 @@
         #main-app { display: none; width: 100%; min-height: 100vh; }
         body { font-family: 'Georgia', serif; margin: 0; background-color: var(--body-bg); color: var(--text-main); display: flex; }
 
-        .sidebar { width: 260px; background-color: #f0e8da; border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; }
-        .task-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-        .task-item { background: #faf6f0; border: 1.5px solid #b8a592; padding: 10px 15px; margin-bottom: 12px; border-radius: 25px; cursor: grab; display: flex; justify-content: space-between; align-items: center; }
-        .delete-task { color: #a32a2a; cursor: pointer; font-weight: bold; }
-        .add-focus-btn { margin-top: 20px; padding: 12px; background: var(--accent-tan); color: white; border-radius: 25px; text-align: center; cursor: pointer; font-weight: bold; }
+        /* --- PLAYLIST SIDEBAR --- */
+        .sidebar { width: 320px; background-color: #f0e8da; border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
+        .playlist-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        .playlist-table th, .playlist-table td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
+        .playlist-table th { background: var(--accent-tan); color: white; }
+        .playlist-table td input { width: 90%; border: none; background: transparent; font-family: inherit; color: inherit; }
+        .add-track-btn { margin-top: 15px; padding: 10px; background: var(--text-main); color: white; border: none; border-radius: 5px; cursor: pointer; text-align: center; font-weight: bold; }
 
+        /* --- TIMETABLE AREA --- */
         #wallpaper-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background-color: var(--primary-bg); padding: 20px; }
-        .timetable-container { width: 100%; max-width: 600px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 60px; }
+        .timetable-container { width: 100%; max-width: 700px; background: var(--card-bg); border-radius: 12px; border: 2px solid var(--border-color); padding: 40px; position: relative; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
         .date-title { font-size: 32px; }
         .clock-box { font-size: 18px; border: 1.5px solid var(--border-color); padding: 10px 20px; background: rgba(255,255,255,0.3); border-radius: 5px; }
 
-        /* FIXED: Now set to 2 columns */
-        .timetable-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; position: relative; }
-        
-        /* Marker hidden for 2-day view to keep it clean, or repositioned */
-        #marker { display: none; }
-
+        .timetable-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .day-label { text-align: center; padding: 15px 5px; background: #e8dcc4; border: 1.5px solid var(--border-color); font-weight: bold; }
         .day-label.sat { background-color: var(--color-sat); }
         .day-label.sun { background-color: var(--color-sun); color: white; }
         
-        .slot { min-height: 140px; border: 1.5px dashed var(--border-color); background: rgba(255,255,255,0.2); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .slot { min-height: 180px; border: 1.5px dashed var(--border-color); background: rgba(255,255,255,0.2); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .span-row { grid-column: span 2; text-align: center; padding: 15px; background: rgba(254, 245, 231, 0.5); border: 1.5px solid #d4a574; }
         .placed-task { background: rgba(240, 230, 210, 0.8); border: 1px solid var(--border-color); padding: 5px 10px; font-size: 14px; border-radius: 4px; display: flex; justify-content: space-between; }
 
         .controls { position: fixed; top: 20px; right: 20px; z-index: 100; }
-        .guest-badge { position: fixed; bottom: 20px; left: 280px; background: #a32a2a; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
+        .guest-badge { position: fixed; bottom: 20px; left: 340px; background: #a32a2a; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
     </style>
 </head>
 <body>
@@ -99,9 +97,19 @@
     </div>
 
     <aside class="sidebar">
-        <h2>Focus</h2>
-        <ul class="task-list" id="sidebarTasks"></ul>
-        <div class="add-focus-btn" onclick="addFocusItem()">+ Focus</div>
+        <h2>Music Playlist</h2>
+        <table class="playlist-table" id="playlistTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Track Name</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="playlistBody">
+                </tbody>
+        </table>
+        <button class="add-track-btn" onclick="addTrack()">+ Add Track</button>
     </aside>
 
     <main id="wallpaper-wrapper">
@@ -119,6 +127,7 @@
     let isGuest = false;
     const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+    // --- LOGIN LOGIC ---
     function checkLogin() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
@@ -142,8 +151,8 @@
         document.getElementById('main-app').style.display = 'flex';
         if(isGuest) document.getElementById('guestBadge').style.display = 'block';
         
-        loadSidebar();
-        renderTwoDayGrid(); // Initial render
+        loadPlaylist();
+        renderTwoDayGrid();
         loadGrid();
         updateClockAndMarker();
     }
@@ -155,40 +164,48 @@
 
     function conditionalSave() {
         if (!isGuest) {
-            saveSidebar();
+            savePlaylist();
             saveGrid();
         }
     }
 
-    function saveSidebar() {
-        const tasks = [];
-        document.querySelectorAll('#sidebarTasks .task-item span:first-child').forEach(span => tasks.push(span.innerText));
-        localStorage.setItem('focusSidebar', JSON.stringify(tasks));
+    // --- PLAYLIST LOGIC ---
+    function addTrack(name = "") {
+        const tbody = document.getElementById('playlistBody');
+        const rowCount = tbody.rows.length + 1;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${rowCount}</td>
+            <td><input type="text" value="${name}" placeholder="Track Name..." onchange="conditionalSave()"></td>
+            <td style="text-align:center"><span style="color:red; cursor:pointer" onclick="this.parentElement.parentElement.remove(); updateTrackNumbers(); conditionalSave();">×</span></td>
+        `;
+        tbody.appendChild(tr);
+        conditionalSave();
     }
 
-    function loadSidebar() {
-        const saved = isGuest ? null : localStorage.getItem('focusSidebar');
-        const tasks = saved ? JSON.parse(saved) : ["Japanese", "English", "Web Dev", "Electricity"];
-        document.getElementById('sidebarTasks').innerHTML = '';
-        tasks.forEach(name => createSidebarItem(name));
+    function updateTrackNumbers() {
+        document.querySelectorAll('#playlistBody tr').forEach((tr, i) => {
+            tr.cells[0].innerText = i + 1;
+        });
     }
 
-    function createSidebarItem(name) {
-        const li = document.createElement('li');
-        li.className = 'task-item';
-        li.draggable = true;
-        li.ondragstart = drag;
-        li.innerHTML = `<span>${name}</span><span class="delete-task" onclick="removeSidebarItem(this)">×</span>`;
-        document.getElementById('sidebarTasks').appendChild(li);
+    function savePlaylist() {
+        const tracks = [];
+        document.querySelectorAll('#playlistBody tr').forEach(tr => {
+            const val = tr.querySelector('input').value;
+            if(val) tracks.push(val);
+        });
+        localStorage.setItem('playlistData', JSON.stringify(tracks));
     }
 
-    function removeSidebarItem(element) { element.parentElement.remove(); conditionalSave(); }
-    function addFocusItem() {
-        const name = prompt("Enter Focus Task:");
-        if (name) { createSidebarItem(name); conditionalSave(); }
+    function loadPlaylist() {
+        const saved = isGuest ? null : localStorage.getItem('playlistData');
+        const tracks = saved ? JSON.parse(saved) : ["Lo-fi Study", "Classical Piano"];
+        document.getElementById('playlistBody').innerHTML = '';
+        tracks.forEach(t => addTrack(t));
     }
 
-    // UPDATED: Renders only Today and Tomorrow
+    // --- GRID LOGIC ---
     function renderTwoDayGrid() {
         const now = new Date();
         const colombo = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 3600000));
@@ -207,7 +224,6 @@
     }
 
     function saveGrid() {
-        // We save using the Day Index as the key so data persists when the view shifts
         const gridData = JSON.parse(localStorage.getItem('focusGrid') || "{}");
         document.querySelectorAll('.slot').forEach(slot => {
             const dayId = slot.getAttribute('data-slot-id');
@@ -241,13 +257,12 @@
 
     function removePlacedTask(element) { element.parentElement.remove(); conditionalSave(); }
 
-    function drag(ev) { ev.dataTransfer.setData("text", ev.target.querySelector('span').innerText); }
     function allowDrop(ev) { ev.preventDefault(); }
     function drop(ev) {
         ev.preventDefault();
-        const data = ev.dataTransfer.getData("text");
+        const data = prompt("Add Task To Slot:"); // Temporary method since Focus labels are removed
         const slot = ev.target.closest('.slot');
-        if (slot) {
+        if (slot && data) {
             createPlacedTask(slot, data);
             conditionalSave();
         }
@@ -271,7 +286,7 @@
 
         html2canvas(document.getElementById('wallpaper-wrapper'), { scale: 2, backgroundColor: '#d1c4ab' }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `Timetable-Focus.png`;
+            link.download = `Timetable-2Day.png`;
             link.href = canvas.toDataURL();
             link.click();
 
